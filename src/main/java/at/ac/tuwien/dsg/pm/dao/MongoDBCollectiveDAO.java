@@ -1,0 +1,123 @@
+package at.ac.tuwien.dsg.pm.dao;
+
+import at.ac.tuwien.dsg.pm.exceptions.CollectiveAlreadyExistsException;
+import at.ac.tuwien.dsg.pm.exceptions.PeerAlreadyExistsException;
+import at.ac.tuwien.dsg.pm.model.Collective;
+import at.ac.tuwien.dsg.pm.model.Peer;
+import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
+import com.mongodb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+/**
+ * @author Philipp Zeppezauer (philipp.zeppezauer@gmail.com)
+ * @version 1.0
+ */
+public class MongoDBCollectiveDAO implements CollectiveDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(MongoDBPeerDAO.class);
+    private static final String COLLECTION = "COLLECTIVES";
+
+    private final DBCollection coll;
+
+    public MongoDBCollectiveDAO(String host, int port, String database) throws UnknownHostException {
+        this(new MongoClient(host, port), database, COLLECTION);
+    }
+
+    public MongoDBCollectiveDAO(MongoClient client, String database, String collection) {
+        coll = client.getDB(database).getCollection(collection);
+    }
+
+    @Override
+    public Collective addCollective(Collective collective) throws CollectiveAlreadyExistsException {
+        DBObject object = serializeCollective(collective);
+        if (collective.getId() == null) {
+            object.removeField("_id");
+        }
+        try {
+            //try to insert the new document
+            WriteResult insert = coll.insert(object);
+            if (collective.getId() == null) {
+                collective.setId(String.valueOf(object.get("_id")));
+            }
+
+            log.trace("Created document for peer: {}", object);
+        } catch (DuplicateKeyException e) {
+            log.trace("Peer already exists: {}", object);
+            throw new CollectiveAlreadyExistsException(e);
+        }
+
+        return collective;
+    }
+
+    @Override
+    public Collective getCollective(String id) {
+        return deserializeCollective(coll.findOne(new BasicDBObject("_id", id)));
+    }
+
+    @Override
+    public List<Collective> getAll() {
+        DBCursor dbObjects = coll.find();
+        final List<Collective> collectives = new ArrayList<>(dbObjects.size());
+
+        for (DBObject dbObject : dbObjects) {
+            collectives.add(deserializeCollective(dbObject));
+        }
+
+        return collectives;
+    }
+
+    @Override
+    public Collective updateCollective(Collective collective) {
+        DBObject modify = coll.findAndModify(new BasicDBObject("_id", collective.getId()), null, null, false, new BasicDBObject("$set", new BasicDBObject("deliveryPolicy", collective.getDeliveryPolicy().name())), true, false);
+        return deserializeCollective(modify);
+    }
+
+    @Override
+    public Collective addPeerToCollective(String collectiveId, String peerId) {
+        DBObject modify = coll.findAndModify(new BasicDBObject("_id", collectiveId), null, null, false, new BasicDBObject("$addToSet", new BasicDBObject("peers", peerId)), true, false);
+        return deserializeCollective(modify);
+    }
+
+    @Override
+    public Collective removePeerToCollective(String collectiveId, String peerId) {
+        DBObject modify = coll.findAndModify(new BasicDBObject("_id", collectiveId), null, null, false, new BasicDBObject("$pull", new BasicDBObject("peers", peerId)), true, false);
+        return deserializeCollective(modify);
+    }
+
+    @Override
+    public void deleteCollective(String id) {
+        coll.remove(new BasicDBObject("_id", id));
+    }
+
+    @Override
+    public void clearData() {
+        coll.remove(new BasicDBObject());
+    }
+
+    private DBObject serializeCollective(Collective collective) {
+        return new BasicDBObject()
+                .append("_id", collective.getId())
+                .append("deliveryPolicy", collective.getDeliveryPolicy().name())
+                .append("peers", collective.getPeers());
+    }
+
+    private Collective deserializeCollective(DBObject object) {
+        if (object == null) {
+            return null;
+        }
+
+        Collective collective = new Collective();
+        collective.setId(String.valueOf(object.get("_id")));
+        collective.setDeliveryPolicy(DeliveryPolicy.Collective.valueOf(String.valueOf(object.get("deliveryPolicy"))));
+        collective.setPeers(new ArrayList<String>((List<String>) object.get("peers")));
+
+        return collective;
+    }
+}
