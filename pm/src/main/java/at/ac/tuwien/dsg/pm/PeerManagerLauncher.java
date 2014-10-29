@@ -1,0 +1,70 @@
+package at.ac.tuwien.dsg.pm;
+
+import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
+import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
+import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
+import com.mongodb.MongoClient;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.UnknownHostException;
+
+/**
+ * @author Philipp Zeppezauer (philipp.zeppezauer@gmail.com)
+ * @version 1.0
+ */
+public class PeerManagerLauncher {
+
+    public static void main(String[] args) throws IOException {
+        int port;
+        String uriPrefix = "PeerManager";
+        String mongoDBHost = "localhost";
+        int mongoDBPort = 12345;
+
+        if (args.length == 0) {
+            port = getFreePort();
+        } else if (args.length == 1) {
+            port = Integer.valueOf(args[1]);
+        } else  {
+            uriPrefix = args[0];
+            port = Integer.valueOf(args[1]);
+
+            if (args.length == 4) {
+                mongoDBHost = args[2];
+                mongoDBPort = Integer.valueOf(args[3]);
+            }
+        }
+
+        PeerManager manager = startPeerManager(port, uriPrefix, mongoDBHost, mongoDBPort);
+
+        System.out.println("Press enter to shutdown the peer manager");
+        new BufferedReader(new InputStreamReader(System.in)).readLine();
+
+        manager.cleanUp();
+    }
+
+    public static PeerManager startPeerManager(int port, String uriPrefix, String mongoDBHost, int mongoDBPort) throws UnknownHostException {
+        System.out.println("Running the peer manager on port ["+port+"] and path '"+uriPrefix+"'");
+
+        MongoClient mongo = new MongoClient(mongoDBHost, mongoDBPort);
+        MongoDBPeerDAO peerDAO = new MongoDBPeerDAO(mongo, "PM", "PEER");
+        MongoDBCollectiveDAO collectiveDAO = new MongoDBCollectiveDAO(mongo, "PM", "COLLECTIVE");
+
+        PeerManager manager = new PeerManager(port, uriPrefix, peerDAO, collectiveDAO);
+        manager.init();
+        return manager;
+    }
+
+    public static int getFreePort() {
+        try {
+            try (ServerSocket socket = new ServerSocket(0)) {
+                socket.setReuseAddress(true);
+                return socket.getLocalPort();
+            }
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+}

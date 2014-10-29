@@ -7,8 +7,8 @@ import at.ac.tuwien.dsg.pm.dao.PeerDAO;
 import at.ac.tuwien.dsg.pm.exceptions.PeerDoesNotExistsException;
 import at.ac.tuwien.dsg.pm.model.Collective;
 import at.ac.tuwien.dsg.pm.model.Peer;
-import at.ac.tuwien.dsg.pm.resources.CollectiveResource;
-import at.ac.tuwien.dsg.pm.resources.PeerResource;
+import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.pm.resources.*;
 import at.ac.tuwien.dsg.smartcom.callback.CollectiveInfoCallback;
 import at.ac.tuwien.dsg.smartcom.callback.PeerAuthenticationCallback;
 import at.ac.tuwien.dsg.smartcom.callback.PeerInfoCallback;
@@ -17,6 +17,7 @@ import at.ac.tuwien.dsg.smartcom.callback.exception.NoSuchPeerException;
 import at.ac.tuwien.dsg.smartcom.callback.exception.PeerAuthenticationException;
 import at.ac.tuwien.dsg.smartcom.model.CollectiveInfo;
 import at.ac.tuwien.dsg.smartcom.model.Identifier;
+import at.ac.tuwien.dsg.smartcom.model.PeerChannelAddress;
 import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 import at.ac.tuwien.dsg.smartcom.rest.ObjectMapperProvider;
 import com.google.common.cache.CacheBuilder;
@@ -39,6 +40,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -47,10 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @author Philipp Zeppezauer (philipp.zeppezauer@gmail.com)
  * @version 1.0
  */
-@Path("pm")
-@Singleton
-@Produces(MediaType.APPLICATION_JSON)
-public class PeerManager implements PeerAuthenticationCallback, PeerInfoCallback, CollectiveInfoCallback {
+public class PeerManager {
     private static final Logger log = LoggerFactory.getLogger(PeerManager.class);
     private static long CACHE_SIZE = 1000;
 
@@ -105,21 +104,6 @@ public class PeerManager implements PeerAuthenticationCallback, PeerInfoCallback
 
     public void cleanUp() {
         server.shutdown();
-    }
-
-    @Override
-    public CollectiveInfo getCollectiveInfo(Identifier identifier) throws NoSuchCollectiveException {
-        return null;
-    }
-
-    @Override
-    public boolean authenticate(Identifier identifier, String s) throws PeerAuthenticationException {
-        return false;
-    }
-
-    @Override
-    public PeerInfo getPeerInfo(Identifier identifier) throws NoSuchPeerException {
-        return null;
     }
 
     public Peer addPeer(Peer peer) throws PeerAlreadyExistsException {
@@ -202,10 +186,14 @@ public class PeerManager implements PeerAuthenticationCallback, PeerInfoCallback
         private RESTApplication() {
             register(PeerResource.class);
             register(CollectiveResource.class);
+            register(PeerInfoResource.class);
+            register(CollectiveInfoResource.class);
+            register(PeerAuthenticationResource.class);
+
             register(MultiPartFeature.class);
             register(ObjectMapperProvider.class);
             register(JacksonFeature.class);
-            register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true));
+//            register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true));
             register(new AbstractBinder() {
                 @Override
                 protected void configure() {
