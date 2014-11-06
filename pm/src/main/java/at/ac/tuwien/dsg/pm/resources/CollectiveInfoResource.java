@@ -2,12 +2,8 @@ package at.ac.tuwien.dsg.pm.resources;
 
 import at.ac.tuwien.dsg.pm.PeerManager;
 import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Peer;
-import at.ac.tuwien.dsg.pm.model.PeerAddress;
 import at.ac.tuwien.dsg.smartcom.model.CollectiveInfo;
 import at.ac.tuwien.dsg.smartcom.model.Identifier;
-import at.ac.tuwien.dsg.smartcom.model.PeerChannelAddress;
-import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;

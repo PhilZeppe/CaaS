@@ -19,7 +19,7 @@ public interface PeerDAO {
 
     public Peer updatePeer(Peer peer);
 
-    public void deletePeer(String id);
+    public Peer deletePeer(String id);
 
     public void clearData();
 }

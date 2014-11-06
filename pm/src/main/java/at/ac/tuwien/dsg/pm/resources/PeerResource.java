@@ -19,7 +19,7 @@ import java.util.UUID;
  * @author Philipp Zeppezauer (philipp.zeppezauer@gmail.com)
  * @version 1.0
  */
-@Path("peer")
+@Path("/peer")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class PeerResource {
@@ -29,15 +29,20 @@ public class PeerResource {
     @Inject
     private PeerManager manager;
 
+    @GET
+    @Path("/{id}")
+    public Response getPeer(@PathParam("id") String id) {
+        Peer obj = manager.getPeer(id);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
     @POST
     public Peer addPeer(Peer peer) throws PeerAlreadyExistsException {
         return manager.addPeer(peer);
-    }
-
-    @GET
-    @Path("/{id}")
-    public Peer getPeer(@PathParam("id") String id) {
-        return manager.getPeer(id);
     }
 
     @GET
@@ -47,20 +52,31 @@ public class PeerResource {
     }
 
     @PUT
-    public Peer updatePeer(Peer peer) {
-        return manager.updatePeer(peer);
+    public Response updatePeer(Peer peer) {
+        Peer obj = manager.updatePeer(peer);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @DELETE
     @Path("/{id}")
-    public void deletePeer(@PathParam("id") String id) {
-        manager.deletePeer(id);
+    public Response deletePeer(@PathParam("id") String id) {
+        Peer obj = manager.deletePeer(id);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @DELETE
     @Path("/all")
-    public void deleteAll() {
+    public Response deleteAll() {
         manager.clearPeerData();
+        return Response.ok().build();
     }
 
     @GET
@@ -90,9 +106,12 @@ public class PeerResource {
     @Produces(MediaType.WILDCARD)
     public Response uploadFile(
             @FormDataParam("file") InputStream uploadedInputStream,
-            @FormDataParam("file") FormDataContentDisposition fileDetail) {
+            @FormDataParam("file") FormDataContentDisposition fileDetail,
+            @DefaultValue("true") @QueryParam("delete") boolean delete) {
 
-        manager.clearPeerData();
+        if (delete) {
+            manager.clearPeerData();
+        }
 
         // save it
         try {
@@ -106,7 +125,7 @@ public class PeerResource {
 
     private void handleFile(InputStream uploadedInputStream, FormDataContentDisposition fileDetail) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(uploadedInputStream));
-        String line = "";
+        String line;
         while ((line = reader.readLine()) != null) {
             Peer peer = mapper.readValue(line, Peer.class);
             manager.addPeer(peer);

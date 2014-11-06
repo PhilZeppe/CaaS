@@ -1,6 +1,5 @@
 package at.ac.tuwien.dsg;
 
-import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -136,6 +135,10 @@ public class MongoDBLauncher {
                     setUpStatic();
                 }
             }
+        }
+
+        public MongoClient getClient() throws UnknownHostException {
+            return new MongoClient("localhost", port);
         }
 
         public void tearDown() {

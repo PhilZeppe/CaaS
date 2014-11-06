@@ -258,7 +258,12 @@ public class PeerManagerCollectiveResourceTest {
         target = client.target(COLLECTIVE_URL +"/"+coll3.getId());
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), delete.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
+
+        target = client.target(COLLECTIVE_URL +"/6");
+        delete = target.request(MediaType.APPLICATION_JSON).delete();
+
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), delete.getStatus());
 
         target = client.target(COLLECTIVE_URL + "/all");
         Collective[] response = target.request(MediaType.APPLICATION_JSON).get(Collective[].class);
@@ -280,7 +285,7 @@ public class PeerManagerCollectiveResourceTest {
 
         WebTarget target = client.target(COLLECTIVE_URL + "/all");
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), delete.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
         target = client.target(COLLECTIVE_URL + "/all");
         Collective[] response = target.request(MediaType.APPLICATION_JSON).get(Collective[].class);

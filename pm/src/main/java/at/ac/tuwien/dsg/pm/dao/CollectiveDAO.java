@@ -2,8 +2,6 @@ package at.ac.tuwien.dsg.pm.dao;
 
 import at.ac.tuwien.dsg.pm.exceptions.CollectiveAlreadyExistsException;
 import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Peer;
 
 import java.util.List;
 
@@ -30,7 +28,7 @@ public interface CollectiveDAO {
 
     public Collective removePeerToCollective(String collectiveId, String peerId);
 
-    public void deleteCollective(String id);
+    public Collective deleteCollective(String id);
 
     public void clearData();
 }

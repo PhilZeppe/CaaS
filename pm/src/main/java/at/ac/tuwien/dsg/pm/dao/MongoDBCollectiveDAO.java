@@ -1,18 +1,15 @@
 package at.ac.tuwien.dsg.pm.dao;
 
 import at.ac.tuwien.dsg.pm.exceptions.CollectiveAlreadyExistsException;
-import at.ac.tuwien.dsg.pm.exceptions.PeerAlreadyExistsException;
 import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Peer;
-import at.ac.tuwien.dsg.pm.model.PeerAddress;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 import com.mongodb.*;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -38,11 +35,11 @@ public class MongoDBCollectiveDAO implements CollectiveDAO {
     public Collective addCollective(Collective collective) throws CollectiveAlreadyExistsException {
         DBObject object = serializeCollective(collective);
         if (collective.getId() == null) {
-            object.removeField("_id");
+            object.put("_id", new ObjectId().toString());
         }
         try {
             //try to insert the new document
-            WriteResult insert = coll.insert(object);
+            coll.insert(object);
             if (collective.getId() == null) {
                 collective.setId(String.valueOf(object.get("_id")));
             }
@@ -92,8 +89,8 @@ public class MongoDBCollectiveDAO implements CollectiveDAO {
     }
 
     @Override
-    public void deleteCollective(String id) {
-        coll.remove(new BasicDBObject("_id", id));
+    public Collective deleteCollective(String id) {
+        return deserializeCollective(coll.findAndRemove(new BasicDBObject("_id", id)));
     }
 
     @Override
@@ -116,7 +113,7 @@ public class MongoDBCollectiveDAO implements CollectiveDAO {
         Collective collective = new Collective();
         collective.setId(String.valueOf(object.get("_id")));
         collective.setDeliveryPolicy(DeliveryPolicy.Collective.valueOf(String.valueOf(object.get("deliveryPolicy"))));
-        collective.setPeers(new ArrayList<String>((List<String>) object.get("peers")));
+        collective.setPeers(new ArrayList<>((List<String>) object.get("peers")));
 
         return collective;
     }

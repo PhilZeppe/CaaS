@@ -1,7 +1,6 @@
 package at.ac.tuwien.dsg.pm.dao;
 
 import at.ac.tuwien.dsg.pm.exceptions.PeerAlreadyExistsException;
-import at.ac.tuwien.dsg.pm.model.Collective;
 import at.ac.tuwien.dsg.pm.model.Peer;
 import at.ac.tuwien.dsg.pm.model.PeerAddress;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;

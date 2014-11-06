@@ -3,7 +3,6 @@ package at.ac.tuwien.dsg.pm.resources;
 import at.ac.tuwien.dsg.pm.PeerManager;
 import at.ac.tuwien.dsg.pm.exceptions.CollectiveAlreadyExistsException;
 import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Peer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -30,15 +29,21 @@ public class CollectiveResource {
     @Inject
     private PeerManager manager;
 
+    @GET
+    @Path("/{id}")
+    public Response getCollective(@PathParam("id") String id) {
+        Collective obj = manager.getCollective(id);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+
     @POST
     public Collective addCollective(Collective collective) throws CollectiveAlreadyExistsException {
         return manager.addCollective(collective);
-    }
-
-    @GET
-    @Path("/{id}")
-    public Collective getCollective(@PathParam("id") String id) {
-        return manager.getCollective(id);
     }
 
     @GET
@@ -48,38 +53,53 @@ public class CollectiveResource {
     }
 
     @PUT
-    public Collective updateCollective(Collective collective) {
-        return manager.updateCollective(collective);
+    public Response updateCollective(Collective collective) {
+        Collective obj = manager.updateCollective(collective);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @PUT
     @Path("/{collectiveId}/{peerId}")
-    public Collective addPeerToCollective(@PathParam("collectiveId") String collectiveId, @PathParam("peerId") String peerId) {
-        return manager.addPeerToCollective(collectiveId, peerId);
+    public Response addPeerToCollective(@PathParam("collectiveId") String collectiveId, @PathParam("peerId") String peerId) {
+        Collective obj = manager.addPeerToCollective(collectiveId, peerId);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @DELETE
     @Path("/{collectiveId}/{peerId}")
-    public Collective removePeerToCollective(@PathParam("collectiveId") String collectiveId, @PathParam("peerId") String peerId) {
-        return manager.removePeerToCollective(collectiveId, peerId);
-    }
+    public Response removePeerToCollective(@PathParam("collectiveId") String collectiveId, @PathParam("peerId") String peerId) {
+        Collective obj = manager.removePeerToCollective(collectiveId, peerId);
 
-    @GET
-    @Path("/test")
-    public String test() {
-        return "hello world";
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @DELETE
     @Path("/{id}")
-    public void deleteCollective(@PathParam("id") String id) {
-        manager.deleteCollective(id);
+    public Response deleteCollective(@PathParam("id") String id) {
+        Collective obj = manager.deleteCollective(id);
+
+        if (obj != null) {
+            return Response.ok(obj).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @DELETE
     @Path("/all")
-    public void deleteAll() {
+    public Response deleteAll() {
         manager.clearCollectiveData();
+        return Response.ok().build();
     }
 
     @GET
@@ -109,9 +129,12 @@ public class CollectiveResource {
     @Produces(MediaType.WILDCARD)
     public Response uploadFile(
             @FormDataParam("file") InputStream uploadedInputStream,
-            @FormDataParam("file") FormDataContentDisposition fileDetail) {
+            @FormDataParam("file") FormDataContentDisposition fileDetail,
+            @DefaultValue("true") @QueryParam("delete") boolean delete) {
 
-        manager.clearCollectiveData();
+        if (delete) {
+            manager.clearCollectiveData();
+        }
 
         // save it
         try {
@@ -125,7 +148,7 @@ public class CollectiveResource {
 
     private void handleFile(InputStream uploadedInputStream, FormDataContentDisposition fileDetail) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(uploadedInputStream));
-        String line = "";
+        String line;
         while ((line = reader.readLine()) != null) {
             Collective collective = mapper.readValue(line, Collective.class);
             manager.addCollective(collective);

@@ -13,7 +13,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * @author Philipp Zeppezauer (philipp.zeppezauer@gmail.com)
@@ -37,11 +36,11 @@ public class MongoDBPeerDAO implements PeerDAO {
     public Peer addPeer(Peer peer) throws PeerAlreadyExistsException {
         DBObject object = serializePeer(peer);
         if (peer.getId() == null) {
-            object.removeField("_id");
+            object.put("_id", new ObjectId().toString());
         }
         try {
             //try to insert the new document
-            WriteResult insert = coll.insert(object);
+            coll.insert(object);
             if (peer.getId() == null) {
                 peer.setId(String.valueOf(object.get("_id")));
             }
@@ -74,13 +73,16 @@ public class MongoDBPeerDAO implements PeerDAO {
 
     @Override
     public Peer updatePeer(Peer peer) {
-        coll.update(new BasicDBObject("_id", peer.getId()), serializePeer(peer), false, false);
-        return peer;
+        WriteResult result = coll.update(new BasicDBObject("_id", peer.getId()), serializePeer(peer), false, false);
+        if (result.getN() > 0) {
+            return peer;
+        }
+        return null;
     }
 
     @Override
-    public void deletePeer(String id) {
-        coll.remove(new BasicDBObject("_id", id));
+    public Peer deletePeer(String id) {
+        return deserializePeer(coll.findAndRemove(new BasicDBObject("_id", id)));
     }
 
     public void clearData() {

@@ -2,7 +2,6 @@ package at.ac.tuwien.dsg.pm;
 
 import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
-import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
 
 import java.io.BufferedReader;
@@ -45,16 +44,19 @@ public class PeerManagerLauncher {
         manager.cleanUp();
     }
 
-    public static PeerManager startPeerManager(int port, String uriPrefix, String mongoDBHost, int mongoDBPort) throws UnknownHostException {
+    public static PeerManager startPeerManager(int port, String uriPrefix, MongoClient mongo) throws UnknownHostException {
         System.out.println("Running the peer manager on port ["+port+"] and path '"+uriPrefix+"'");
 
-        MongoClient mongo = new MongoClient(mongoDBHost, mongoDBPort);
         MongoDBPeerDAO peerDAO = new MongoDBPeerDAO(mongo, "PM", "PEER");
         MongoDBCollectiveDAO collectiveDAO = new MongoDBCollectiveDAO(mongo, "PM", "COLLECTIVE");
 
         PeerManager manager = new PeerManager(port, uriPrefix, peerDAO, collectiveDAO);
         manager.init();
         return manager;
+    }
+
+    public static PeerManager startPeerManager(int port, String uriPrefix, String mongoDBHost, int mongoDBPort) throws UnknownHostException {
+        return startPeerManager(port, uriPrefix, new MongoClient(mongoDBHost, mongoDBPort));
     }
 
     public static int getFreePort() {

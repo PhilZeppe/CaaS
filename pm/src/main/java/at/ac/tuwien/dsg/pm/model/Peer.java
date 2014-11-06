@@ -2,8 +2,6 @@ package at.ac.tuwien.dsg.pm.model;
 
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import java.util.List;
 
 /**

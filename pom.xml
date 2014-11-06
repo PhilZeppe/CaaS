@@ -13,6 +13,7 @@
         <module>pm</module>
         <module>integration</module>
         <module>service</module>
+        <module>peer</module>
     </modules>
 
     <build>
@@ -118,7 +119,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    
+
     <repositories>
 		<repository>
 			<id>eaio.com</id>

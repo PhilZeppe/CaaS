@@ -22,11 +22,10 @@ class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
     private final ObjectMapper mapper;
 
     public ObjectMapperResolver() {
-        System.out.println("new ObjectMapperResolver()");
         mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-        SimpleModule module = new SimpleModule("SerializableMapper", new Version(1, 0, 0, null));
+        SimpleModule module = new SimpleModule("SerializableMapper", new Version(0, 1, 0, "alpha", "", ""));
         module.addDeserializer(Serializable.class, new SerializableDeserializer());
         mapper.registerSubtypes(String.class);
         mapper.registerModule(module);
@@ -34,7 +33,6 @@ class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
 
     @Override
     public ObjectMapper getContext(Class<?> type) {
-        System.out.println("ObjectMapperResolver.getContext(...)");
         return mapper;
     }
 }

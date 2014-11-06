@@ -1,31 +1,19 @@
 package at.ac.tuwien.dsg.pm;
 
 import at.ac.tuwien.dsg.pm.dao.CollectiveDAO;
+import at.ac.tuwien.dsg.pm.dao.PeerDAO;
 import at.ac.tuwien.dsg.pm.exceptions.CollectiveAlreadyExistsException;
 import at.ac.tuwien.dsg.pm.exceptions.PeerAlreadyExistsException;
-import at.ac.tuwien.dsg.pm.dao.PeerDAO;
 import at.ac.tuwien.dsg.pm.exceptions.PeerDoesNotExistsException;
 import at.ac.tuwien.dsg.pm.model.Collective;
 import at.ac.tuwien.dsg.pm.model.Peer;
-import at.ac.tuwien.dsg.pm.model.PeerAddress;
 import at.ac.tuwien.dsg.pm.resources.*;
-import at.ac.tuwien.dsg.smartcom.callback.CollectiveInfoCallback;
-import at.ac.tuwien.dsg.smartcom.callback.PeerAuthenticationCallback;
-import at.ac.tuwien.dsg.smartcom.callback.PeerInfoCallback;
-import at.ac.tuwien.dsg.smartcom.callback.exception.NoSuchCollectiveException;
-import at.ac.tuwien.dsg.smartcom.callback.exception.NoSuchPeerException;
-import at.ac.tuwien.dsg.smartcom.callback.exception.PeerAuthenticationException;
-import at.ac.tuwien.dsg.smartcom.model.CollectiveInfo;
-import at.ac.tuwien.dsg.smartcom.model.Identifier;
-import at.ac.tuwien.dsg.smartcom.model.PeerChannelAddress;
-import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 import at.ac.tuwien.dsg.smartcom.rest.ObjectMapperProvider;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -34,13 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -126,14 +109,17 @@ public class PeerManager {
     }
 
     public Peer updatePeer(Peer peer) {
-        peerDAO.updatePeer(peer);
-        cache.put(peer.getId(), peer);
+        peer = peerDAO.updatePeer(peer);
+        if (peer != null) {
+            cache.put(peer.getId(), peer);
+        }
         return peer;
     }
 
-    public void deletePeer(String id) {
-        peerDAO.deletePeer(id);
+    public Peer deletePeer(String id) {
+        Peer peer = peerDAO.deletePeer(id);
         cache.invalidate(id);
+        return peer;
     }
 
     public List<Peer> getAllPeers() {
@@ -174,8 +160,8 @@ public class PeerManager {
         return collectiveDAO.removePeerToCollective(collectiveId, peerId);
     }
 
-    public void deleteCollective(String id) {
-        collectiveDAO.deleteCollective(id);
+    public Collective deleteCollective(String id) {
+        return collectiveDAO.deleteCollective(id);
     }
 
     public void clearCollectiveData() {

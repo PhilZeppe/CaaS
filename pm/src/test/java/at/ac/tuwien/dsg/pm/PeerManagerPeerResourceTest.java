@@ -2,17 +2,13 @@ package at.ac.tuwien.dsg.pm;
 
 import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
-import at.ac.tuwien.dsg.pm.model.Collective;
 import at.ac.tuwien.dsg.pm.model.Peer;
 import at.ac.tuwien.dsg.pm.model.PeerAddress;
-import at.ac.tuwien.dsg.smartcom.adapters.rest.JsonMessageDTO;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
 import org.glassfish.jersey.client.ClientProperties;
-import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.jackson.JacksonFeature;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
@@ -25,14 +21,15 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -203,7 +200,12 @@ public class PeerManagerPeerResourceTest {
         WebTarget target = client.target(PEER_URL+"/"+peer3.getId());
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), delete.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
+
+        target = client.target(PEER_URL+"/Peer6");
+        delete = target.request(MediaType.APPLICATION_JSON).delete();
+
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), delete.getStatus());
 
         target = client.target(PEER_URL + "/all");
         Peer[] response = target.request(MediaType.APPLICATION_JSON).get(Peer[].class);
@@ -228,7 +230,7 @@ public class PeerManagerPeerResourceTest {
         WebTarget target = client.target(PEER_URL+"/all");
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
-        assertEquals(Response.Status.NO_CONTENT.getStatusCode(), delete.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
         List<Peer> peers = Arrays.asList(peer1, peer2, peer3, peer4, peer5);
 
