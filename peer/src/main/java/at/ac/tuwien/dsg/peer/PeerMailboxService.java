@@ -94,7 +94,7 @@ public class PeerMailboxService {
             register(MultiPartFeature.class);
             register(ObjectMapperProvider.class);
             register(JacksonFeature.class);
-            register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true));
+//            register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true));
             register(new AbstractBinder() {
                 @Override
                 protected void configure() {

@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.container.TimeoutHandler;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
@@ -34,6 +35,12 @@ public class MailboxResource {
     @Path("/poll/{id}")
     public void poll(@PathParam("id") String id, @Suspended final AsyncResponse asyncResponse) {
         asyncResponse.setTimeout(30, TimeUnit.SECONDS);
+        asyncResponse.setTimeoutHandler(new TimeoutHandler() {
+            @Override
+            public void handleTimeout(AsyncResponse asyncResponse) {
+                asyncResponse.resume(Response.status(Response.Status.REQUEST_TIMEOUT).build());
+            }
+        });
         JsonMessageDTO messageDTO = pullNextMessage(id);
         if (messageDTO != null) {
             asyncResponse.resume(messageDTO);
