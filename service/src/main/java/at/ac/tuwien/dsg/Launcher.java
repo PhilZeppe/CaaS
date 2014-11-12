@@ -1,5 +1,7 @@
 package at.ac.tuwien.dsg;
 
+import at.ac.tuwien.dsg.peer.PeerMailboxService;
+import at.ac.tuwien.dsg.peer.PeerMailboxServiceLauncher;
 import at.ac.tuwien.dsg.pm.PeerManager;
 import at.ac.tuwien.dsg.pm.PeerManagerLauncher;
 import at.ac.tuwien.dsg.rest.adapter.AdapterRestService;
@@ -24,6 +26,9 @@ public class Launcher {
 
         PeerManagerConnector peerManagerConnector = new PeerManagerConnector("http://localhost:8080/PeerManager");
 
+        PeerMailboxService mailboxService = PeerMailboxServiceLauncher.startPeerManager(8083, "mailbox", mongodb.getClient());
+        System.out.println("Running the the peer mailbox service on port ["+8083+"] and path 'mailbox'");
+
         SmartCom smartCom = new SmartComBuilder(peerManagerConnector, peerManagerConnector, peerManagerConnector)
                 .initAdapters(true)
                 .initializeActiveMQ(true)
@@ -42,6 +47,7 @@ public class Launcher {
 
         adapterRestService.cleanUp();
         smartCom.tearDownSmartCom();
+        mailboxService.cleanUp();
         peerManager.cleanUp();
         mongodb.tearDown();
     }

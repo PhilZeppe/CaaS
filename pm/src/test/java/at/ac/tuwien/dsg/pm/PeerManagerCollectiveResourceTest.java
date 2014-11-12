@@ -3,9 +3,11 @@ package at.ac.tuwien.dsg.pm;
 import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
 import at.ac.tuwien.dsg.pm.model.Collective;
+import at.ac.tuwien.dsg.pm.util.FreePortProviderUtil;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.media.multipart.MultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -35,7 +37,7 @@ import static org.junit.Assert.*;
 
 public class PeerManagerCollectiveResourceTest {
 
-    public static final String COLLECTIVE_URL = "http://localhost:8080/SmartCom/collective";
+    public String url = "http://localhost:8080/SmartCom/collective";
     private MongoDBInstance mongoDB;
 
     private MongoDBPeerDAO peerDAO;
@@ -46,22 +48,25 @@ public class PeerManagerCollectiveResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        mongoDB = new MongoDBInstance();
+        int mongoDbPort = FreePortProviderUtil.getFreePort();
+        mongoDB = new MongoDBInstance(mongoDbPort);
         mongoDB.setUp();
 
-        MongoClient mongo = new MongoClient("localhost", 12345);
+        MongoClient mongo = new MongoClient("localhost", mongoDbPort);
         peerDAO = new MongoDBPeerDAO(mongo, "TEST", "PEER");
         collectiveDAO = new MongoDBCollectiveDAO(mongo, "TEST", "COLLECTIVE");
 
         this.client = ClientBuilder.newBuilder()
                 .register(JacksonFeature.class)
                 .register(MultiPartFeature.class)
-//                .property(ClientProperties.CONNECT_TIMEOUT, 5000)
-//                .property(ClientProperties.READ_TIMEOUT, 5000)
+                .property(ClientProperties.CONNECT_TIMEOUT, 5000)
+                .property(ClientProperties.READ_TIMEOUT, 5000)
                 .build();
 //        client.register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true)); //enables this to have additional logging information
 
-        manager = new PeerManager(8080, "SmartCom", peerDAO, collectiveDAO);
+        int freePort = FreePortProviderUtil.getFreePort();
+        url = "http://localhost:"+freePort+"/SmartCom/collective";
+        manager = new PeerManager(freePort, "SmartCom", peerDAO, collectiveDAO);
         manager.init();
     }
 
@@ -74,7 +79,7 @@ public class PeerManagerCollectiveResourceTest {
 
     @Test
     public void testAddCollective() throws Exception {
-        WebTarget target = client.target(COLLECTIVE_URL);
+        WebTarget target = client.target(url);
 
         Collective coll1 = createCollective("1");
         Collective coll2 = createCollective("2");
@@ -122,7 +127,7 @@ public class PeerManagerCollectiveResourceTest {
         List<Collective> collectives = Arrays.asList(coll1, coll2, coll3, coll4, coll5);
 
         for (Collective collective : collectives) {
-            WebTarget target = client.target(COLLECTIVE_URL+"/"+collective.getId());
+            WebTarget target = client.target(url +"/"+collective.getId());
             Collective response = target.request(MediaType.APPLICATION_JSON).get(Collective.class);
             assertEquals(collective, response);
         }
@@ -138,7 +143,7 @@ public class PeerManagerCollectiveResourceTest {
 
         List<Collective> peers = Arrays.asList(coll1, coll2, coll3, coll4, coll5);
 
-        WebTarget target = client.target(COLLECTIVE_URL + "/all");
+        WebTarget target = client.target(url + "/all");
         Collective[] response = target.request(MediaType.APPLICATION_JSON).get(Collective[].class);
 
         assertThat(Arrays.asList(response), Matchers.containsInAnyOrder(peers.toArray()));
@@ -156,7 +161,7 @@ public class PeerManagerCollectiveResourceTest {
 
         for (Collective collective : collectives) {
             collective.setDeliveryPolicy(DeliveryPolicy.Collective.TO_ANY);
-            WebTarget target = client.target(COLLECTIVE_URL);
+            WebTarget target = client.target(url);
             Collective response = target.request(MediaType.APPLICATION_JSON).put(Entity.json(collective), Collective.class);
             assertEquals(collective, response);
             assertEquals(collective, collectiveDAO.getCollective(collective.getId()));
@@ -183,7 +188,7 @@ public class PeerManagerCollectiveResourceTest {
                 peersOfCollective.remove(peer);
                 peersOfCollective.add(peer);
 
-                WebTarget target = client.target(COLLECTIVE_URL + "/" + collective.getId() + "/" + peer);
+                WebTarget target = client.target(url + "/" + collective.getId() + "/" + peer);
                 Collective response = target.request(MediaType.APPLICATION_JSON).put(Entity.json(""), Collective.class);
 
                 assertThat(response.getPeers(), Matchers.containsInAnyOrder(peersOfCollective.toArray()));
@@ -229,7 +234,7 @@ public class PeerManagerCollectiveResourceTest {
                 String peer = peers.get(randomGenerator.nextInt(peers.size()));
                 peersOfCollective.add(peer);
 
-                WebTarget target = client.target(COLLECTIVE_URL + "/" + collective.getId() + "/" + peer);
+                WebTarget target = client.target(url + "/" + collective.getId() + "/" + peer);
                 Collective response = target.request(MediaType.APPLICATION_JSON).delete(Collective.class);
 
                 assertThat(response.getPeers(), Matchers.not(Matchers.containsInAnyOrder(peersOfCollective.toArray())));
@@ -251,21 +256,21 @@ public class PeerManagerCollectiveResourceTest {
         Collective coll4 = createAndAddCollective("4");
         Collective coll5 = createAndAddCollective("5");
 
-        WebTarget target = client.target(COLLECTIVE_URL +"/"+coll3.getId());
+        WebTarget target = client.target(url +"/"+coll3.getId());
         Collective response3 = target.request(MediaType.APPLICATION_JSON).get(Collective.class);
         assertEquals(coll3, response3);
 
-        target = client.target(COLLECTIVE_URL +"/"+coll3.getId());
+        target = client.target(url +"/"+coll3.getId());
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
         assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
-        target = client.target(COLLECTIVE_URL +"/6");
+        target = client.target(url +"/6");
         delete = target.request(MediaType.APPLICATION_JSON).delete();
 
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), delete.getStatus());
 
-        target = client.target(COLLECTIVE_URL + "/all");
+        target = client.target(url + "/all");
         Collective[] response = target.request(MediaType.APPLICATION_JSON).get(Collective[].class);
 
         List<Collective> collectives = Arrays.asList(coll1, coll2, coll4, coll5);
@@ -283,11 +288,11 @@ public class PeerManagerCollectiveResourceTest {
 
         List<Collective> peers = Arrays.asList(coll1, coll2, coll3, coll4, coll5);
 
-        WebTarget target = client.target(COLLECTIVE_URL + "/all");
+        WebTarget target = client.target(url + "/all");
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
         assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
-        target = client.target(COLLECTIVE_URL + "/all");
+        target = client.target(url + "/all");
         Collective[] response = target.request(MediaType.APPLICATION_JSON).get(Collective[].class);
         assertThat(Arrays.asList(response), Matchers.not(Matchers.containsInAnyOrder(peers.toArray())));
     }
@@ -300,7 +305,7 @@ public class PeerManagerCollectiveResourceTest {
         createAndAddCollective("4");
         createAndAddCollective("5");
 
-        WebTarget target = client.target(COLLECTIVE_URL +"/download");
+        WebTarget target = client.target(url +"/download");
         Response response = target.request(MediaType.APPLICATION_OCTET_STREAM).get();
 
         File file = response.readEntity(File.class);
@@ -323,9 +328,9 @@ public class PeerManagerCollectiveResourceTest {
             fail("Could not load file");
         }
 
-        WebTarget target = client.target(COLLECTIVE_URL + "/upload");
-        final Response clientResp = target.request(MediaType.MULTIPART_FORM_DATA_TYPE).post(Entity.entity(multiPart, multiPart.getMediaType()));
+        WebTarget target = client.target(this.url + "/upload");
 
+        target.request(MediaType.MULTIPART_FORM_DATA_TYPE).post(Entity.entity(multiPart, multiPart.getMediaType()));
         assertThat(collectiveDAO.getAll(), Matchers.hasSize(4));
     }
 

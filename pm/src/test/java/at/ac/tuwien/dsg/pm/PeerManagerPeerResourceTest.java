@@ -4,6 +4,7 @@ import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
 import at.ac.tuwien.dsg.pm.model.Peer;
 import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.pm.util.FreePortProviderUtil;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
@@ -35,7 +36,7 @@ import static org.junit.Assert.*;
 
 public class PeerManagerPeerResourceTest {
 
-    public static final String PEER_URL = "http://localhost:8080/SmartCom/peer";
+    public String url = "http://localhost:8080/SmartCom/peer";
     private MongoDBInstance mongoDB;
 
     private MongoDBPeerDAO peerDAO;
@@ -45,10 +46,11 @@ public class PeerManagerPeerResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        mongoDB = new MongoDBInstance();
+        int mongoDbPort = FreePortProviderUtil.getFreePort();
+        mongoDB = new MongoDBInstance(mongoDbPort);
         mongoDB.setUp();
 
-        MongoClient mongo = new MongoClient("localhost", 12345);
+        MongoClient mongo = new MongoClient("localhost", mongoDbPort);
         peerDAO = new MongoDBPeerDAO(mongo, "TEST", "PEER");
         MongoDBCollectiveDAO collectiveDAO = new MongoDBCollectiveDAO(mongo, "TEST", "COLLECTIVE");
 
@@ -60,7 +62,9 @@ public class PeerManagerPeerResourceTest {
                 .build();
 //        client.register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true)); //enables this to have additional logging information
 
-        manager = new PeerManager(8080, "SmartCom", peerDAO, collectiveDAO);
+        int freePort = FreePortProviderUtil.getFreePort();
+        url = "http://localhost:"+freePort+"/SmartCom/peer";
+        manager = new PeerManager(freePort, "SmartCom", peerDAO, collectiveDAO);
         manager.init();
     }
 
@@ -73,7 +77,7 @@ public class PeerManagerPeerResourceTest {
 
     @Test
     public void testAddPeer() throws Exception {
-        WebTarget target = client.target(PEER_URL);
+        WebTarget target = client.target(url);
 
         Peer peer1 = createPeer("1", "Peer1");
         Peer peer2 = createPeer("2", "Peer2");
@@ -129,7 +133,7 @@ public class PeerManagerPeerResourceTest {
         List<Peer> peers = Arrays.asList(peer1, peer2, peer3, peer4, peer5);
 
         for (Peer peer : peers) {
-            WebTarget target = client.target(PEER_URL+"/"+peer.getId());
+            WebTarget target = client.target(url +"/"+peer.getId());
             Peer response = target.request(MediaType.APPLICATION_JSON).get(Peer.class);
             assertEquals(peer, response);
         }
@@ -151,7 +155,7 @@ public class PeerManagerPeerResourceTest {
 
         List<Peer> peers = Arrays.asList(peer1, peer2, peer3, peer4, peer5);
 
-        WebTarget target = client.target(PEER_URL + "/all");
+        WebTarget target = client.target(url + "/all");
         Peer[] response = target.request(MediaType.APPLICATION_JSON).get(Peer[].class);
 
         assertThat(Arrays.asList(response), Matchers.containsInAnyOrder(peers.toArray()));
@@ -175,7 +179,7 @@ public class PeerManagerPeerResourceTest {
 
         for (Peer peer : peers) {
             peer.setName("changedName"+peer.getId());
-            WebTarget target = client.target(PEER_URL);
+            WebTarget target = client.target(url);
             Peer response = target.request(MediaType.APPLICATION_JSON).put(Entity.json(peer), Peer.class);
             assertEquals(peer, response);
 
@@ -197,17 +201,17 @@ public class PeerManagerPeerResourceTest {
         peerDAO.addPeer(peer4);
         peerDAO.addPeer(peer5);
 
-        WebTarget target = client.target(PEER_URL+"/"+peer3.getId());
+        WebTarget target = client.target(url +"/"+peer3.getId());
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
         assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
-        target = client.target(PEER_URL+"/Peer6");
+        target = client.target(url +"/Peer6");
         delete = target.request(MediaType.APPLICATION_JSON).delete();
 
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), delete.getStatus());
 
-        target = client.target(PEER_URL + "/all");
+        target = client.target(url + "/all");
         Peer[] response = target.request(MediaType.APPLICATION_JSON).get(Peer[].class);
 
         assertThat(Arrays.asList(response), Matchers.not(Matchers.contains(peer3)));
@@ -227,14 +231,14 @@ public class PeerManagerPeerResourceTest {
         peerDAO.addPeer(peer4);
         peerDAO.addPeer(peer5);
 
-        WebTarget target = client.target(PEER_URL+"/all");
+        WebTarget target = client.target(url +"/all");
         Response delete = target.request(MediaType.APPLICATION_JSON).delete();
 
         assertEquals(Response.Status.OK.getStatusCode(), delete.getStatus());
 
         List<Peer> peers = Arrays.asList(peer1, peer2, peer3, peer4, peer5);
 
-        target = client.target(PEER_URL + "/all");
+        target = client.target(url + "/all");
         Peer[] response = target.request(MediaType.APPLICATION_JSON).get(Peer[].class);
 
         assertThat(Arrays.asList(response), Matchers.not(Matchers.contains(peers.toArray())));
@@ -254,7 +258,7 @@ public class PeerManagerPeerResourceTest {
         peerDAO.addPeer(peer4);
         peerDAO.addPeer(peer5);
 
-        WebTarget target = client.target(PEER_URL+"/download");
+        WebTarget target = client.target(url +"/download");
         Response response = target.request(MediaType.APPLICATION_OCTET_STREAM).get();
 
         File file = response.readEntity(File.class);
@@ -277,8 +281,8 @@ public class PeerManagerPeerResourceTest {
             fail("Could not load file");
         }
 
-        WebTarget target = client.target(PEER_URL + "/upload");
-        final Response clientResp = target.request(MediaType.MULTIPART_FORM_DATA_TYPE).post(Entity.entity(multiPart, multiPart.getMediaType()));
+        WebTarget target = client.target(this.url + "/upload");
+        target.request(MediaType.MULTIPART_FORM_DATA_TYPE).post(Entity.entity(multiPart, multiPart.getMediaType()));
 
         assertThat(peerDAO.getAll(), Matchers.hasSize(5));
     }

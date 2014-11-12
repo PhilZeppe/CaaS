@@ -4,9 +4,9 @@ import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
 import at.ac.tuwien.dsg.pm.model.Peer;
 import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.pm.util.FreePortProviderUtil;
 import at.ac.tuwien.dsg.pm.util.RequestMappingFeature;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
-import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
 import org.glassfish.jersey.client.ClientProperties;
@@ -18,17 +18,15 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PeerManagerPeerAuthenticationResourceTest {
 
-    public static final String URL = "http://localhost:8080/SmartCom/peerAuth";
+    public String url = "http://localhost:8080/SmartCom/peerAuth";
     private MongoDBInstance mongoDB;
 
     private MongoDBPeerDAO peerDAO;
@@ -38,10 +36,11 @@ public class PeerManagerPeerAuthenticationResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        mongoDB = new MongoDBInstance();
+        int mongoDbPort = FreePortProviderUtil.getFreePort();
+        mongoDB = new MongoDBInstance(mongoDbPort);
         mongoDB.setUp();
 
-        MongoClient mongo = new MongoClient("localhost", 12345);
+        MongoClient mongo = new MongoClient("localhost", mongoDbPort);
         peerDAO = new MongoDBPeerDAO(mongo, "TEST", "PEER");
         MongoDBCollectiveDAO collectiveDAO = new MongoDBCollectiveDAO(mongo, "TEST", "COLLECTIVE");
 
@@ -52,7 +51,9 @@ public class PeerManagerPeerAuthenticationResourceTest {
                 .build();
 //        client.register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true)); //enables this to have additional logging information
 
-        manager = new PeerManager(8080, "SmartCom", peerDAO, collectiveDAO);
+        int freePort = FreePortProviderUtil.getFreePort();
+        url = "http://localhost:"+freePort+"/SmartCom/peerAuth";
+        manager = new PeerManager(freePort, "SmartCom", peerDAO, collectiveDAO);
         manager.init();
     }
 
@@ -75,13 +76,13 @@ public class PeerManagerPeerAuthenticationResourceTest {
 
 
         for (Peer peer : peers) {
-            WebTarget target = client.target(URL+"/"+peer.getId());
+            WebTarget target = client.target(url +"/"+peer.getId());
             Boolean auth = target.request(MediaType.APPLICATION_JSON).header("password", peer.getId()).get(Boolean.class);
 
             assertTrue(auth);
         }
 
-        WebTarget target = client.target(URL+"/1");
+        WebTarget target = client.target(url +"/1");
         Boolean auth = target.request(MediaType.APPLICATION_JSON).header("password", "2").get(Boolean.class);
 
         assertFalse(auth);

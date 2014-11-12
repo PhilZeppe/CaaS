@@ -2,35 +2,32 @@ package at.ac.tuwien.dsg.pm;
 
 import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
-import at.ac.tuwien.dsg.pm.model.Collective;
 import at.ac.tuwien.dsg.pm.model.Peer;
 import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.pm.util.FreePortProviderUtil;
+import at.ac.tuwien.dsg.pm.util.RequestMappingFeature;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
 import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
-import at.ac.tuwien.dsg.pm.util.RequestMappingFeature;
 import com.mongodb.MongoClient;
 import org.glassfish.jersey.client.ClientProperties;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 public class PeerManagerPeerInfoResourceTest {
 
-    public static final String URL = "http://localhost:8080/SmartCom/peerInfo";
+    public String url = "http://localhost:8080/SmartCom/peerInfo";
     private MongoDBInstance mongoDB;
 
     private MongoDBPeerDAO peerDAO;
@@ -40,10 +37,11 @@ public class PeerManagerPeerInfoResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        mongoDB = new MongoDBInstance();
+        int mongoDbPort = FreePortProviderUtil.getFreePort();
+        mongoDB = new MongoDBInstance(mongoDbPort);
         mongoDB.setUp();
 
-        MongoClient mongo = new MongoClient("localhost", 12345);
+        MongoClient mongo = new MongoClient("localhost", mongoDbPort);
         peerDAO = new MongoDBPeerDAO(mongo, "TEST", "PEER");
         MongoDBCollectiveDAO collectiveDAO = new MongoDBCollectiveDAO(mongo, "TEST", "COLLECTIVE");
 
@@ -54,7 +52,9 @@ public class PeerManagerPeerInfoResourceTest {
                 .build();
 //        client.register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true)); //enables this to have additional logging information
 
-        manager = new PeerManager(8080, "SmartCom", peerDAO, collectiveDAO);
+        int freePort = FreePortProviderUtil.getFreePort();
+        url = "http://localhost:"+freePort+"/SmartCom/peerInfo";
+        manager = new PeerManager(freePort, "SmartCom", peerDAO, collectiveDAO);
         manager.init();
     }
 
@@ -77,7 +77,7 @@ public class PeerManagerPeerInfoResourceTest {
 
 
         for (Peer peer : peers) {
-            WebTarget target = client.target(URL+"/"+peer.getId());
+            WebTarget target = client.target(url +"/"+peer.getId());
             PeerInfo peerInfo = target.request(MediaType.APPLICATION_JSON).get(PeerInfo.class);
 
             assertEquals(peer.getId(), peerInfo.getId().getId());
@@ -85,7 +85,7 @@ public class PeerManagerPeerInfoResourceTest {
             assertEquals(peer.getPeerAddressList().size(), peerInfo.getAddresses().size());
         }
 
-        WebTarget target = client.target(URL+"/6");
+        WebTarget target = client.target(url +"/6");
         Response response = target.request(MediaType.APPLICATION_JSON).get();
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }

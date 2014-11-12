@@ -4,9 +4,7 @@ import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
 import com.mongodb.MongoClient;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 
@@ -39,7 +37,7 @@ public class PeerManagerLauncher {
         PeerManager manager = startPeerManager(port, uriPrefix, mongoDBHost, mongoDBPort);
 
         System.out.println("Press enter to shutdown the peer manager");
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        System.in.read();
 
         manager.cleanUp();
     }

@@ -3,12 +3,10 @@ package at.ac.tuwien.dsg.pm;
 import at.ac.tuwien.dsg.pm.dao.MongoDBCollectiveDAO;
 import at.ac.tuwien.dsg.pm.dao.MongoDBPeerDAO;
 import at.ac.tuwien.dsg.pm.model.Collective;
-import at.ac.tuwien.dsg.pm.model.Peer;
-import at.ac.tuwien.dsg.pm.model.PeerAddress;
+import at.ac.tuwien.dsg.pm.util.FreePortProviderUtil;
 import at.ac.tuwien.dsg.pm.util.RequestMappingFeature;
 import at.ac.tuwien.dsg.smartcom.model.CollectiveInfo;
 import at.ac.tuwien.dsg.smartcom.model.DeliveryPolicy;
-import at.ac.tuwien.dsg.smartcom.model.PeerInfo;
 import at.ac.tuwien.dsg.smartcom.utils.MongoDBInstance;
 import com.mongodb.MongoClient;
 import org.glassfish.jersey.client.ClientProperties;
@@ -28,7 +26,7 @@ import static org.junit.Assert.assertEquals;
 
 public class PeerManagerCollectiveInfoResourceTest {
 
-    public static final String URL = "http://localhost:8080/SmartCom/collectiveInfo";
+    public String url = "http://localhost:8080/SmartCom/collectiveInfo";
     private MongoDBInstance mongoDB;
 
     private MongoDBPeerDAO peerDAO;
@@ -39,10 +37,11 @@ public class PeerManagerCollectiveInfoResourceTest {
 
     @Before
     public void setUp() throws Exception {
-        mongoDB = new MongoDBInstance();
+        int mongoDbPort = FreePortProviderUtil.getFreePort();
+        mongoDB = new MongoDBInstance(mongoDbPort);
         mongoDB.setUp();
 
-        MongoClient mongo = new MongoClient("localhost", 12345);
+        MongoClient mongo = new MongoClient("localhost", mongoDbPort);
         peerDAO = new MongoDBPeerDAO(mongo, "TEST", "PEER");
         collectiveDAO = new MongoDBCollectiveDAO(mongo, "TEST", "COLLECTIVE");
 
@@ -53,7 +52,9 @@ public class PeerManagerCollectiveInfoResourceTest {
                 .build();
 //        client.register(new LoggingFilter(java.util.logging.Logger.getLogger("Jersey"), true)); //enables this to have additional logging information
 
-        manager = new PeerManager(8080, "SmartCom", peerDAO, collectiveDAO);
+        int freePort = FreePortProviderUtil.getFreePort();
+        url = "http://localhost:"+freePort+"/SmartCom/collectiveInfo";
+        manager = new PeerManager(freePort, "SmartCom", peerDAO, collectiveDAO);
         manager.init();
     }
 
@@ -76,7 +77,7 @@ public class PeerManagerCollectiveInfoResourceTest {
 
 
         for (Collective collective : collectives) {
-            WebTarget target = client.target(URL+"/"+collective.getId());
+            WebTarget target = client.target(url +"/"+collective.getId());
             CollectiveInfo info = target.request(MediaType.APPLICATION_JSON).get(CollectiveInfo.class);
 
             assertEquals(collective.getId(), info.getId().getId());
@@ -84,7 +85,7 @@ public class PeerManagerCollectiveInfoResourceTest {
             assertEquals(collective.getPeers().size(), info.getPeers().size());
         }
 
-        WebTarget target = client.target(URL+"/6");
+        WebTarget target = client.target(url +"/6");
         Response response = target.request(MediaType.APPLICATION_JSON).get();
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
     }
